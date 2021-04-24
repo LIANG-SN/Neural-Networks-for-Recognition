@@ -1,5 +1,6 @@
 import numpy as np
 from util import *
+import random
 # do not include any more libraries here!
 # do not put any code outside of functions!
 
@@ -9,7 +10,8 @@ from util import *
 # we will do XW + b. 
 # X be [Examples, Dimensions]
 def initialize_weights(in_size,out_size,params,name=''):
-    W, b = None, None
+    dist = np.sqrt(6) / np.sqrt(in_size + out_size)
+    W, b = np.random.uniform(-dist, dist, (in_size, out_size)), np.zeros(out_size)
     
     params['W' + name] = W
     params['b' + name] = b
@@ -18,7 +20,7 @@ def initialize_weights(in_size,out_size,params,name=''):
 # x is a matrix
 # a sigmoid activation function
 def sigmoid(x):
-    res = None
+    res = 1 / (1 + np.exp(-x)) # check this
     return res
 
 # Q 2.2.2
@@ -38,7 +40,8 @@ def forward(X,params,name='',activation=sigmoid):
     b = params['b' + name]
 
     # your code here
-    
+    pre_act = X @ W + b
+    post_act = activation(pre_act)
 
     # store the pre-activation and post-activation values
     # these will be important in backprop
@@ -50,8 +53,12 @@ def forward(X,params,name='',activation=sigmoid):
 # x is [examples,classes]
 # softmax should be done for each row
 def softmax(x):
-    res = None
-    
+    # optimize this
+    res = np.zeros(x.shape)
+    for i in range(0, x.shape[0]):
+        c = -np.max(x[i])
+        sum = np.sum(np.exp(x[i, :] + c))
+        res[i, :] = np.exp(x[i, :] + c) / sum
     return res
 
 # Q 2.2.3
@@ -60,7 +67,13 @@ def softmax(x):
 # probs is size [examples,classes]
 def compute_loss_and_acc(y, probs):
     loss, acc = None, None
-    
+    loss = np.sum(y * -np.log(probs))
+
+    predict = np.argmax(probs, axis=1)
+    label = np.argmax(y, axis=1)
+    correct = ((predict[:] == label[:]))
+    acc = (np.sum(correct)) / y.shape[0]
+
     return loss, acc 
 
 # we give this to you
@@ -88,7 +101,12 @@ def backwards(delta,params,name='',activation_deriv=sigmoid_deriv):
     # your code here
     # do the derivative through activation first
     # then compute the derivative W,b, and X
-    
+    delta1 = activation_deriv(post_act) * delta
+
+    # review this
+    grad_W = X.T @ delta1
+    grad_b = np.sum(delta1, axis=0)
+    grad_X = (W @ delta1.T).T
 
     # store the gradients
     params['grad_W' + name] = grad_W
@@ -100,5 +118,12 @@ def backwards(delta,params,name='',activation_deriv=sigmoid_deriv):
 # return a list of [(batch1_x,batch1_y)...]
 def get_random_batches(x,y,batch_size):
     batches = []
-    
+    shuffled = np.random.permutation(x.shape[0])
+    x_t = x[shuffled]
+    y_t = y[shuffled]
+    for i in range(x.shape[0] // batch_size):
+        batch = (x_t[i * batch_size : i * batch_size + batch_size], \
+            y_t[i * batch_size : i * batch_size + batch_size])
+        batches.append(batch)
     return batches
+

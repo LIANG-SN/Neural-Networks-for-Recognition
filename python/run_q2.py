@@ -2,6 +2,7 @@ import numpy as np
 # you should write your functions in nn.py
 from nn import *
 from util import *
+import matplotlib.pyplot as plt
 
 
 # fake data
@@ -12,6 +13,7 @@ g1 = np.random.multivariate_normal([3.9,10],[[0.01,0],[0,5]],10)
 g2 = np.random.multivariate_normal([3.4,30],[[0.25,0],[0,5]],10)
 g3 = np.random.multivariate_normal([2.0,10],[[0.5,0],[0,10]],10)
 x = np.vstack([g0,g1,g2,g3])
+
 # we will do XW + B
 # that implies that the data is N x D
 
@@ -84,21 +86,32 @@ batch_num = len(batches)
 max_iters = 500
 learning_rate = 1e-3
 # with default settings, you should get loss < 35 and accuracy > 75%
+initialize_weights(2,25,params,'layer1')
+initialize_weights(25,4,params,'output')
 for itr in range(max_iters):
     total_loss = 0
     avg_acc = 0
     for xb,yb in batches:
-        pass
         # forward
-
+        h1 = forward(xb,params,'layer1')
+        probs = forward(h1,params,'output',softmax)
         # loss
         # be sure to add loss and accuracy to epoch totals 
-
+        loss, acc = compute_loss_and_acc(yb, probs)
+        total_loss += loss
+        avg_acc += acc / batch_num
         # backward
-
+        delta1 = probs
+        label = np.argmax(yb, axis=1)
+        delta1[np.arange(probs.shape[0]),label] -= 1
+        delta2 = backwards(delta1,params,'output',linear_deriv)
+        backwards(delta2,params,'layer1',sigmoid_deriv)
         # apply gradient
+        params['Wlayer1'] -= learning_rate * params['grad_Wlayer1']
+        params['Woutput'] -= learning_rate * params['grad_Woutput']
+        params['blayer1'] -= learning_rate * params['grad_blayer1']
+        params['boutput'] -= learning_rate * params['grad_boutput']
 
-        
     if itr % 100 == 0:
         print("itr: {:02d} \t loss: {:.2f} \t acc : {:.2f}".format(itr,total_loss,avg_acc))
 
@@ -106,11 +119,18 @@ for itr in range(max_iters):
 # Q 2.5 should be implemented in this file
 # you can do this before or after training the network. 
 
+h1 = forward(x, params, 'layer1')
+probs = forward(h1, params, 'output', softmax)
+loss, acc = compute_loss_and_acc(y, probs)
+delta1 = probs
+yb_idx = np.argmax(y, axis=1)
+delta1[np.arange(probs.shape[0]),y_idx] -= 1
+delta2 = backwards(delta1,params,'output',linear_deriv)
+backwards(delta2,params,'layer1',sigmoid_deriv)
 
 # save the old params
 import copy
 params_orig = copy.deepcopy(params)
-
 eps = 1e-6
 for k,v in params.items():
     if '_' in k: 
@@ -121,8 +141,22 @@ for k,v in params.items():
     #   run the network
     #   get the loss
     #   compute derivative with central diffs
-    
-    
+
+    for index, _ in np.ndenumerate(v):
+        params[k][index] += eps
+        h1 = forward(x, params,'layer1')
+        probs = forward(h1,params,'output',softmax)
+        loss_plus, _ = compute_loss_and_acc(y, probs)
+        
+        params[k][index] -= 2 * eps
+        h1 = forward(x, params,'layer1')
+        probs = forward(h1,params,'output',softmax)
+        loss_minus, _ = compute_loss_and_acc(y, probs)
+        
+        params['grad_' + k][index] = (loss_plus - loss_minus) / (2 * eps)
+
+        params[k][index] += eps # review: need?
+
 
 total_error = 0
 for k in params.keys():
