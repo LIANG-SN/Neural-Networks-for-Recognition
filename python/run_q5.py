@@ -95,11 +95,11 @@ if plot_validation:
         plt.subplot(5,4,i*4+1)
         plt.imshow(valid[i*2].reshape(32,32).T)
         plt.subplot(5,4,i*4+2)
-        plt.imshow(out[i].reshape(32,32).T)
+        plt.imshow(out[i*2].reshape(32,32).T)
         plt.subplot(5,4,i*4+3)
         plt.imshow(valid[i*2+1].reshape(32,32).T)
         plt.subplot(5,4,i*4+4)
-        plt.imshow(out[i+1].reshape(32,32).T)
+        plt.imshow(out[i*2+1].reshape(32,32).T)
     plt.show()
 
 
